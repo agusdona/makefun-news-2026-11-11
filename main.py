@@ -1,59 +1,67 @@
-#!/usr/bin/env python3
-"""Write the 11 November 2026 world-news summary to /output/entry.txt.
+"""news-summary-01: the best summary of the world's news of Wednesday 11 November 2026.
 
-Stdlib only, no network, no randomness, no time or locale dependence.
-Deterministic: every run writes the same bytes.
+Writes the summary to /output/entry.txt (or $MAKEFUN_OUTPUT_DIR/entry.txt
+outside the grader's container). Standard library only; deterministic:
+the same bytes on every run, no network, no randomness.
 """
 
-import sys
-from pathlib import Path
+import os
 
-SUMMARY = "On Wednesday, November 11, 2026, the US federal shutdown entered its 42nd day — the longest in American history — as the House prepared to vote on a Senate funding deal, passed 60–40 on Monday, that would reopen the government. The fight over health-care subsidies had furloughed hundreds of thousands of workers and disrupted airports. In Abu Dhabi, two days of US-mediated talks between Ukraine and Russia ended without a ceasefire but with agreement on what US envoy Jared Kushner called the war's largest prisoner exchange, the BBC reported. Russian strikes left more than 850,000 people without power, and NATO scrambled jets after drones strayed into Baltic airspace. President Donald Trump declared the war with Iran 'militarily effectively over,' even as a tanker struck a naval mine in the Strait of Hormuz, closed for more than 250 days. In Gaza, Israeli strikes killed at least 10 people over two days, Reuters reported, and winter floods submerged 70,000 tents sheltering about 350,000 displaced people, Gaza authorities said. At COP31 in Antalya, UN Secretary-General António Guterres warned that the climate crisis is 'outrunning us,' with warming heading past 2.5°C even if current pledges are met, UN News reported. Markets rebounded after a hot inflation reading: US consumer prices rose 0.4% in October, the 10-year Treasury yield hit 5.03%, and the S&P 500 rose 1.31% to 7,619.38 while the Nasdaq gained 1.60%, led by AI firm CoreWeave, up 24.7% after revenue of about $3.66 billion. China's goods trade surplus passed $1 trillion for a second consecutive year, reaching $1.04 trillion in the first ten months of 2026, CNN reported. In DR Congo, Ebola cases passed 11,000, with more than 5,300 dead, Reuters reported. In Washington, Treasury Secretary Scott Bessent was moved to a military base after intelligence said Iranian plotting against US officials advanced, and House Republicans blocked an effort to impeach Defense Secretary Pete Hegseth, 211–204, the BBC reported."
-
-OUTPUT_PATH = Path("/output/entry.txt")
-
-# Markers the sealed gate scorer and the house judge expect to see:
-# every source the summary attributes, plus the two facts the brief
-# singles out (the 60-40 Senate vote and the DR Congo Ebola toll).
-REQUIRED_MARKERS = (
-    "BBC",
-    "Reuters",
-    "UN News",
-    "CNN",
-    "Gaza authorities",
-    "passed 60–40 on Monday",
-    "Ebola",
+SUMMARY = (
+    "World news, Wednesday 11 November 2026: Russia and Ukraine held a second day "
+    "of US-mediated talks in Abu Dhabi, their first such meeting in nine months, with "
+    "American envoys Jared Kushner and Steve Witkoff pressing both sides toward a deal; "
+    "Secretary of State Marco Rubio called the first day 'very productive', and the "
+    "delegations, led by Rustem Umerov for Kyiv and Vladimir Medinsky for Moscow, "
+    "discussed prisoner swaps and the return of Ukrainian children (AP)."
+    "\n\nAt the COP31 climate summit in Antalya, Turkey, world leaders opened formal "
+    "talks on curbing global warming; UN Secretary-General Antonio Guterres told them, "
+    "'We know the truth. Now we must act on it,' though the leaders of the United States, "
+    "China and India stayed away (AP)."
+    "\n\nIn Washington, the House voted 211-204 to send eight articles of impeachment "
+    "against Defense Secretary Pete Hegseth to the Judiciary Committee, shelving the "
+    "effort brought by Republican Thomas Massie over the Iran war and other military "
+    "actions (NPR)."
+    "\n\nUS prosecutors charged three men over an alleged Iran-backed campaign of nearly "
+    "20 attacks in Europe and America, including a September plot against RAF Fairford, "
+    "the British base that housed US B-1 bombers; one defendant allegedly directed it "
+    "from a New York jail cell (Justice Department)."
+    "\n\nCongo's Ebola outbreak passed 11,000 cases, with 11,042 infections and 5,387 "
+    "deaths, the country's deadliest outbreak; the Bundibugyo virus behind it, which has "
+    "spread to eight of 26 provinces, has no vaccine (AP)."
+    "\n\nUS consumer prices rose 0.4% in October, above forecasts, sending the S&P 500 "
+    "down 0.4% and the Nasdaq 0.7% and pushing the 10-year Treasury yield above 5%, "
+    "with a December rate rise now seen as near-certain (BLS)."
+    "\n\nElsewhere, El Salvador struck the 400 Mawozo gang, President Trump sued the BBC, "
+    "nine people were seriously hurt in a bus crash in Seongnam, South Korea, counting "
+    "continued in Mississippi's Senate race, and Australia marked Remembrance Day "
+    "(BBC; Yonhap; CBS)."
 )
 
 
-def validate(text: str) -> None:
-    """Fail loudly if the summary would fail the sealed gate scorer.
-
-    The gate passes a text that is UTF-8, 1 to 2000 characters and not
-    only white space. Checking here means a bad summary never reaches
-    /output/entry.txt silently.
-    """
-    if not text.strip():
-        raise SystemExit("summary is empty")
-    if len(text) > 2000:
-        raise SystemExit(f"summary is {len(text)} chars, over the 2000 limit")
-    missing = [m for m in REQUIRED_MARKERS if m not in text]
-    if missing:
-        raise SystemExit(f"summary is missing required markers: {missing}")
+REQUIRED_MARKERS = ("11 November 2026", "Abu Dhabi", "COP31")
 
 
-def main() -> None:
-    """Write the summary, to /output/entry.txt unless a path is given.
+def validate(text):
+    """Check the summary against the gate before writing it out."""
+    if not (1 <= len(text) <= 2000):
+        raise ValueError("summary must be 1 to 2000 characters, got %d" % len(text))
+    if not any(not c.isspace() for c in text):
+        raise ValueError("summary must contain a non-whitespace character")
+    for marker in REQUIRED_MARKERS:
+        if marker not in text:
+            raise ValueError("summary is missing required marker: %s" % marker)
 
-    An explicit path keeps the default behaviour for the competition
-    while letting a grader or a test run the entry to a scratch file.
-    """
-    output = Path(sys.argv[1]) if len(sys.argv) > 1 else OUTPUT_PATH
+
+def main():
     validate(SUMMARY)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    with output.open("w", encoding="utf-8", newline="") as f:
+    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
+    os.makedirs(out_dir, exist_ok=True)
+    path = os.path.join(out_dir, "entry.txt")
+    with open(path, "w", encoding="utf-8") as f:
         f.write(SUMMARY)
 
 
 if __name__ == "__main__":
     main()
+
